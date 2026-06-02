@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>わりざん配りゲーム</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#f0f8ff;
+    margin:0;
+}
+
+h1{
+    background:#4caf50;
+    color:white;
+    margin:0;
+    padding:15px;
+}
+
+#question{
+    font-size:24px;
+    margin:15px;
+    font-weight:bold;
+}
+
+#controls{
+    margin:10px;
+}
+
+button{
+    font-size:18px;
+    padding:10px 20px;
+    margin:5px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.apple1{
+    background:#ff6666;
+    color:white;
+}
+
+.apple10{
+    background:#ff9900;
+    color:white;
+}
+
+#stock{
+    font-size:22px;
+    margin:10px;
+}
+
+.people{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:15px;
+    padding:10px;
+}
+
+.person{
+    background:white;
+    border:3px solid #4caf50;
+    border-radius:15px;
+    width:180px;
+    min-height:180px;
+    padding:10px;
+}
+
+.person h3{
+    margin:5px;
+}
+
+.count{
+    font-size:24px;
+    color:#d32f2f;
+    font-weight:bold;
+}
+
+.result{
+    font-size:28px;
+    font-weight:bold;
+    margin:15px;
+}
+
+.success{
+    color:green;
+}
+
+.fail{
+    color:red;
+}
+
+#score{
+    font-size:22px;
+    margin:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🍎 わりざん配りゲーム 🍎</h1>
+
+<div id="question"></div>
+
+<div id="score">
+スコア：<span id="scoreValue">0</span>
+</div>
+
+<div id="stock">
+残りのリンゴ：
+<span id="remaining"></span>
+</div>
+
+<div id="controls">
+<button class="apple1" onclick="selectAmount(1)">
+🍎 1個配る
+</button>
+
+<button class="apple10" onclick="selectAmount(10)">
+🍎×10 配る
+</button>
+</div>
+
+<div class="people" id="people"></div>
+
+<div>
+<button onclick="judge()">判定</button>
+<button onclick="newQuestion()">次の問題</button>
+<button onclick="resetGame()">やり直し</button>
+</div>
+
+<div id="result" class="result"></div>
+
+<script>
+
+let total=0;
+let persons=0;
+let answer=0;
+
+let remaining=0;
+let selectedAmount=1;
+
+let boxes=[];
+let score=0;
+
+function selectAmount(n){
+    selectedAmount=n;
+}
+
+function newQuestion(){
+
+    const questions=[
+        {a:12,b:3},
+        {a:15,b:5},
+        {a:24,b:6},
+        {a:30,b:5},
+        {a:40,b:8},
+        {a:48,b:6},
+        {a:60,b:5},
+        {a:72,b:8},
+        {a:90,b:9},
+        {a:100,b:5}
+    ];
+
+    const q=
+    questions[Math.floor(Math.random()*questions.length)];
+
+    total=q.a;
+    persons=q.b;
+    answer=total/persons;
+
+    remaining=total;
+
+    boxes=[];
+
+    for(let i=0;i<persons;i++){
+        boxes.push(0);
+    }
+
+    document.getElementById("question").textContent=
+    `${total}個のリンゴを${persons}人で同じ数ずつ分けよう`;
+
+    drawPeople();
+
+    document.getElementById("result").textContent="";
+}
+
+function drawPeople(){
+
+    document.getElementById("remaining").textContent=
+    remaining;
+
+    const area=document.getElementById("people");
+    area.innerHTML="";
+
+    boxes.forEach((v,index)=>{
+
+        const div=document.createElement("div");
+        div.className="person";
+
+        div.innerHTML=`
+        <h3>😀 人${index+1}</h3>
+        <div class="count">${v}個</div>
+        <button onclick="give(${index})">配る</button>
+        `;
+
+        area.appendChild(div);
+    });
+}
+
+function give(index){
+
+    if(remaining<selectedAmount){
+        return;
+    }
+
+    boxes[index]+=selectedAmount;
+    remaining-=selectedAmount;
+
+    drawPeople();
+}
+
+function resetGame(){
+
+    remaining=total;
+
+    for(let i=0;i<boxes.length;i++){
+        boxes[i]=0;
+    }
+
+    drawPeople();
+
+    document.getElementById("result").textContent="";
+}
+
+function judge(){
+
+    if(remaining!==0){
+
+        document.getElementById("result").innerHTML=
+        "⚠️ まだリンゴが残っています";
+
+        document.getElementById("result").className=
+        "result fail";
+
+        return;
+    }
+
+    let ok=true;
+
+    for(let i=0;i<boxes.length;i++){
+
+        if(boxes[i]!==answer){
+            ok=false;
+            break;
+        }
+    }
+
+    if(ok){
+
+        score++;
+
+        document.getElementById("scoreValue").textContent=
+        score;
+
+        document.getElementById("result").innerHTML=
+        `🎉 正解！<br>${total} ÷ ${persons} = ${answer}`;
+
+        document.getElementById("result").className=
+        "result success";
+
+    }else{
+
+        document.getElementById("result").innerHTML=
+        `❌ ちがいます<br>みんな ${answer} 個ずつになるよ`;
+
+        document.getElementById("result").className=
+        "result fail";
+    }
+}
+
+newQuestion();
+
+</script>
+
+</body>
+</html>
