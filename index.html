@@ -26,13 +26,20 @@ h1{
     font-weight:bold;
 }
 
-#controls{
+#score,#stock,#modeArea{
+    font-size:20px;
     margin:10px;
+}
+
+select{
+    font-size:18px;
+    padding:6px 12px;
+    border-radius:8px;
 }
 
 button{
     font-size:18px;
-    padding:10px 20px;
+    padding:10px 18px;
     margin:5px;
     border:none;
     border-radius:10px;
@@ -49,40 +56,92 @@ button{
     color:white;
 }
 
-#stock{
-    font-size:22px;
-    margin:10px;
+.action{
+    background:#4caf50;
+    color:white;
+}
+
+.reset{
+    background:#607d8b;
+    color:white;
+}
+
+#appleSource{
+    margin:15px auto;
+    width:120px;
+    padding:10px;
+    background:white;
+    border:3px dashed #ff6666;
+    border-radius:15px;
+}
+
+#appleImg{
+    width:70px;
+    cursor:grab;
+    user-select:none;
+}
+
+#appleImg:active{
+    cursor:grabbing;
 }
 
 .people{
     display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:15px;
+    flex-wrap:nowrap;
+    justify-content:flex-start;
+    gap:10px;
     padding:10px;
+    overflow-x:auto;
 }
 
 .person{
-    background:white;
+    background:#fffdf5;
     border:3px solid #4caf50;
-    border-radius:15px;
-    width:180px;
-    min-height:180px;
-    padding:10px;
+    border-radius:12px;
+    width:115px;
+    min-width:115px;
+    min-height:145px;
+    padding:8px;
+}
+
+.person.dragover{
+    background:#e8f5e9;
+    transform:scale(1.03);
 }
 
 .person h3{
-    margin:5px;
+    margin:4px;
+    font-size:16px;
+}
+
+.basket{
+    min-height:55px;
+    margin:6px 0;
+    border:2px dashed #bc8f5a;
+    border-radius:10px;
+    background:#fff8dc;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.miniApple{
+    width:22px;
+    height:22px;
+    object-fit:cover;
+    border-radius:50%;
+    margin:1px;
 }
 
 .count{
-    font-size:24px;
+    font-size:22px;
     color:#d32f2f;
     font-weight:bold;
 }
 
 .result{
-    font-size:28px;
+    font-size:26px;
     font-weight:bold;
     margin:15px;
 }
@@ -94,17 +153,20 @@ button{
 .fail{
     color:red;
 }
-
-#score{
-    font-size:22px;
-    margin:10px;
-}
 </style>
 </head>
 
 <body>
 
 <h1>🍎 わりざん配りゲーム 🍎</h1>
+
+<div id="modeArea">
+問題タイプ：
+<select id="questionMode" onchange="newQuestion()">
+    <option value="normal">あまりなし</option>
+    <option value="remainder">あまりあり</option>
+</select>
+</div>
 
 <div id="question"></div>
 
@@ -113,121 +175,176 @@ button{
 </div>
 
 <div id="stock">
-残りのリンゴ：
-<span id="remaining"></span>
+残りのリンゴ：<span id="remaining"></span>
+</div>
+
+<div id="appleSource">
+<img
+    id="appleImg"
+    src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/120px-Red_Apple.jpg"
+    alt="リンゴ"
+    draggable="true"
+>
+<div>ドラッグして配る</div>
 </div>
 
 <div id="controls">
-<button class="apple1" onclick="selectAmount(1)">
-🍎 1個配る
-</button>
-
-<button class="apple10" onclick="selectAmount(10)">
-🍎×10 配る
-</button>
+<button class="apple1" onclick="selectAmount(1)">🍎 1個</button>
+<button class="apple10" onclick="selectAmount(10)">🍎×10</button>
 </div>
 
 <div class="people" id="people"></div>
 
 <div>
-<button onclick="judge()">判定</button>
-<button onclick="newQuestion()">次の問題</button>
-<button onclick="resetGame()">やり直し</button>
+<button class="action" onclick="judge()">判定</button>
+<button class="action" onclick="newQuestion()">次の問題</button>
+<button class="reset" onclick="resetGame()">やり直し</button>
 </div>
 
 <div id="result" class="result"></div>
 
 <script>
-
 let total=0;
 let persons=0;
 let answer=0;
-
+let remainderAnswer=0;
 let remaining=0;
 let selectedAmount=1;
-
 let boxes=[];
 let score=0;
+
+const appleImgUrl=
+"https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/120px-Red_Apple.jpg";
 
 function selectAmount(n){
     selectedAmount=n;
 }
 
-function newQuestion(){
+document.getElementById("appleImg").addEventListener("dragstart",function(event){
+    event.dataTransfer.setData("text/plain",String(selectedAmount));
+});
 
-    const questions=[
-        {a:12,b:3},
-        {a:15,b:5},
-        {a:24,b:6},
-        {a:30,b:5},
-        {a:40,b:8},
-        {a:48,b:6},
-        {a:60,b:5},
-        {a:72,b:8},
-        {a:90,b:9},
-        {a:100,b:5}
+function newQuestion(){
+    const normalQuestions=[
+        {a:12,b:3},{a:15,b:5},{a:24,b:6},{a:30,b:5},{a:40,b:8},
+        {a:48,b:6},{a:60,b:5},{a:72,b:8},{a:90,b:9},{a:100,b:5}
     ];
 
-    const q=
-    questions[Math.floor(Math.random()*questions.length)];
+    const remainderQuestions=[
+        {a:13,b:3},{a:17,b:5},{a:25,b:6},{a:31,b:5},{a:43,b:8},
+        {a:50,b:6},{a:62,b:5},{a:75,b:8},{a:92,b:9},{a:103,b:5}
+    ];
+
+    const mode=document.getElementById("questionMode").value;
+    const questions=mode==="remainder" ? remainderQuestions : normalQuestions;
+    const q=questions[Math.floor(Math.random()*questions.length)];
 
     total=q.a;
     persons=q.b;
-    answer=total/persons;
-
+    answer=Math.floor(total/persons);
+    remainderAnswer=total%persons;
     remaining=total;
-
     boxes=[];
 
     for(let i=0;i<persons;i++){
         boxes.push(0);
     }
 
-    document.getElementById("question").textContent=
-    `${total}個のリンゴを${persons}人で同じ数ずつ分けよう`;
+    if(mode==="remainder"){
+        document.getElementById("question").textContent=
+        `${total}個のリンゴを${persons}人で同じ数ずつ分けよう。あまりも考えよう`;
+    }else{
+        document.getElementById("question").textContent=
+        `${total}個のリンゴを${persons}人で同じ数ずつ分けよう`;
+    }
 
     drawPeople();
-
-    document.getElementById("result").textContent="";
+    clearResult();
 }
 
 function drawPeople(){
-
-    document.getElementById("remaining").textContent=
-    remaining;
+    document.getElementById("remaining").textContent=remaining;
 
     const area=document.getElementById("people");
-    area.innerHTML="";
+    area.textContent="";
 
-    boxes.forEach((v,index)=>{
-
+    boxes.forEach(function(value,index){
         const div=document.createElement("div");
         div.className="person";
 
-        div.innerHTML=`
-        <h3>😀 人${index+1}</h3>
-        <div class="count">${v}個</div>
-        <button onclick="give(${index})">配る</button>
-        `;
+        div.addEventListener("dragover",function(event){
+            event.preventDefault();
+            div.classList.add("dragover");
+        });
+
+        div.addEventListener("dragleave",function(){
+            div.classList.remove("dragover");
+        });
+
+        div.addEventListener("drop",function(event){
+            event.preventDefault();
+            div.classList.remove("dragover");
+
+            const amount=Number(event.dataTransfer.getData("text/plain"));
+            give(index,amount);
+        });
+
+        const title=document.createElement("h3");
+        title.textContent=`😀 人${index+1}`;
+
+        const basket=document.createElement("div");
+        basket.className="basket";
+
+        const shownApples=Math.min(value,12);
+        for(let i=0;i<shownApples;i++){
+            const img=document.createElement("img");
+            img.src=appleImgUrl;
+            img.alt="";
+            img.className="miniApple";
+            basket.appendChild(img);
+        }
+
+        if(value>12){
+            const more=document.createElement("span");
+            more.textContent=`+${value-12}`;
+            basket.appendChild(more);
+        }
+
+        const count=document.createElement("div");
+        count.className="count";
+        count.textContent=`${value}個`;
+
+        const button=document.createElement("button");
+        button.textContent="配る";
+        button.onclick=function(){
+            give(index,selectedAmount);
+        };
+
+        div.appendChild(title);
+        div.appendChild(basket);
+        div.appendChild(count);
+        div.appendChild(button);
 
         area.appendChild(div);
     });
 }
 
-function give(index){
-
-    if(remaining<selectedAmount){
+function give(index,amount){
+    if(!Number.isInteger(amount) || amount<=0){
         return;
     }
 
-    boxes[index]+=selectedAmount;
-    remaining-=selectedAmount;
+    if(remaining<amount){
+        showResult("⚠️ リンゴが足りません","fail");
+        return;
+    }
 
+    boxes[index]+=amount;
+    remaining-=amount;
     drawPeople();
 }
 
 function resetGame(){
-
     remaining=total;
 
     for(let i=0;i<boxes.length;i++){
@@ -235,27 +352,25 @@ function resetGame(){
     }
 
     drawPeople();
-
-    document.getElementById("result").textContent="";
+    clearResult();
 }
 
 function judge(){
+    const mode=document.getElementById("questionMode").value;
+    const expectedRemaining=mode==="remainder" ? remainderAnswer : 0;
 
-    if(remaining!==0){
-
-        document.getElementById("result").innerHTML=
-        "⚠️ まだリンゴが残っています";
-
-        document.getElementById("result").className=
-        "result fail";
-
+    if(remaining!==expectedRemaining){
+        if(mode==="remainder"){
+            showResult(`⚠️ あまりは ${remainderAnswer} 個になるようにしよう`,"fail");
+        }else{
+            showResult("⚠️ まだリンゴが残っています","fail");
+        }
         return;
     }
 
     let ok=true;
 
     for(let i=0;i<boxes.length;i++){
-
         if(boxes[i]!==answer){
             ok=false;
             break;
@@ -263,30 +378,36 @@ function judge(){
     }
 
     if(ok){
-
         score++;
+        document.getElementById("scoreValue").textContent=score;
 
-        document.getElementById("scoreValue").textContent=
-        score;
-
-        document.getElementById("result").innerHTML=
-        `🎉 正解！<br>${total} ÷ ${persons} = ${answer}`;
-
-        document.getElementById("result").className=
-        "result success";
-
+        if(mode==="remainder"){
+            showResult(`🎉 正解！<br>${total} ÷ ${persons} = ${answer} あまり ${remainderAnswer}`,"success");
+        }else{
+            showResult(`🎉 正解！<br>${total} ÷ ${persons} = ${answer}`,"success");
+        }
     }else{
-
-        document.getElementById("result").innerHTML=
-        `❌ ちがいます<br>みんな ${answer} 個ずつになるよ`;
-
-        document.getElementById("result").className=
-        "result fail";
+        if(mode==="remainder"){
+            showResult(`❌ ちがいます<br>みんな ${answer} 個ずつ、あまり ${remainderAnswer} 個になるよ`,"fail");
+        }else{
+            showResult(`❌ ちがいます<br>みんな ${answer} 個ずつになるよ`,"fail");
+        }
     }
 }
 
-newQuestion();
+function showResult(message,type){
+    const result=document.getElementById("result");
+    result.innerHTML=message;
+    result.className=`result ${type}`;
+}
 
+function clearResult(){
+    const result=document.getElementById("result");
+    result.textContent="";
+    result.className="result";
+}
+
+newQuestion();
 </script>
 
 </body>
